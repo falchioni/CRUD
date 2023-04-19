@@ -1,0 +1,113 @@
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using MinhaAplicacao.DataContext;
+using MinhaAplicacao.Models;
+using System.ComponentModel.DataAnnotations;
+
+namespace MinhaAplicacao.Models
+{
+    public class Produto
+    {
+        public int ID { get; set; }
+
+        [Required(ErrorMessage = "A descrição é obrigatória.")]
+        public string? Descricao { get; set; }
+
+        [Required(ErrorMessage = "A unidade é obrigatória.")]
+        public string? Unidade { get; set; }
+    }
+}
+
+
+namespace MinhaAplicacao.Models
+{
+    public class Pedido
+    {
+        public int ID { get; set; }
+
+        [Required(ErrorMessage = "A data é obrigatória.")]
+        public DateTime Data { get; set; }
+
+        [Required(ErrorMessage = "O fornecedor é obrigatório.")]
+        public int FornecedorID { get; set; }
+
+        public Fornecedor? Fornecedor { get; set; }
+
+        public ICollection<PedidoItem>? Itens { get; set; }
+    }
+
+    
+
+
+}
+
+namespace MinhaAplicacao.Models
+{
+    public class Fornecedor
+    {
+        public int ID { get; set; }
+
+        [Required(ErrorMessage = "A razão social é obrigatória.")]
+        public string? RazaoSocial { get; set; }
+
+        [Required(ErrorMessage = "O CNPJ é obrigatório.")]
+        public string? CNPJ { get; set; }
+
+        public ICollection<Pedido>? Pedidos { get; set; }
+    }
+}
+
+
+namespace MinhaAplicacao.Models
+{
+    public class PedidoItem
+    {
+        public int ID { get; set; }
+
+        [Required(ErrorMessage = "O pedido é obrigatório.")]
+        public int PedidoID { get; set; }
+
+        public Pedido? Pedido { get; set; }
+
+        [Required(ErrorMessage = "O produto é obrigatório.")]
+        public int ProdutoID { get; set; }
+
+        public Produto? Produto { get; set; }
+
+        [Required(ErrorMessage = "A quantidade é obrigatória.")]
+        public int Quantidade { get; set; }
+
+        [Required(ErrorMessage = "O valor é obrigatório.")]
+        public decimal Valor { get; set; }
+    }
+}
+
+
+
+namespace MinhaAplicacao.DataContext
+{
+    public class MeuContexto : DbContext
+    {
+        public MeuContexto() : base("name=DefaultConnection") { }
+
+        public DbSet<Produto> Produtos { get; set; }
+
+        public DbSet<Pedido> Pedidos { get; set; }
+
+        public DbSet<Fornecedor> Fornecedores { get; set; }
+
+        public DbSet<PedidoItem> PedidoItens { get; set; }
+    }
+}
+
+
+namespace MinhaAplicacao.Controllers
+{
+    public class ProdutosController : Controller
+    {
+        private MeuContexto db = new MeuContexto();
+
+        public ActionResult Index()
+        { }
+    }
+}

@@ -1,129 +1,123 @@
 using Microsoft.AspNetCore.Mvc;
-using MinhaAplicacao.DataContext;
+using MinhaAplicacao.Models;
+using MinhaAplicacao.Repositories;
+using System.ComponentModel.DataAnnotations;
+
+namespace MinhaAplicacao.Models
+{
+    public class Produto
+    {
+        public int ID { get; set; }
+
+        [Required(ErrorMessage = "A descrição do produto é obrigatória.")]
+        public string Descricao { get; set; }
+
+        [Required(ErrorMessage = "A unidade do produto é obrigatória.")]
+        public string Unidade { get; set; }
+    }
+
+    public class Pedido
+    {
+        public int ID { get; set; }
+
+        [Required(ErrorMessage = "A data do pedido é obrigatória.")]
+        public DateTime Data { get; set; }
+
+        [Required(ErrorMessage = "O fornecedor do pedido é obrigatório.")]
+        public int FornecedorID { get; set; }
+
+        public Fornecedor Fornecedor { get; set; }
+
+        public ICollection<PedidoItem> Itens { get; set; }
+    }
+
+    public class Fornecedor
+    {
+        public int ID { get; set; }
+
+        [Required(ErrorMessage = "A razão social do fornecedor é obrigatória.")]
+        public string RazaoSocial { get; set; }
+
+        [Required(ErrorMessage = "O CNPJ do fornecedor é obrigatório.")]
+        public string CNPJ { get; set; }
+
+        public ICollection<Pedido> Pedidos { get; set; }
+    }
+
+    public class PedidoItem
+    {
+        public int ID { get; set; }
+
+        [Required(ErrorMessage = "O pedido do item é obrigatório.")]
+        public int PedidoID { get; set; }
+
+        public Pedido Pedido { get; set; }
+
+        [Required(ErrorMessage = "O produto do item é obrigatório.")]
+        public int ProdutoID { get; set; }
+
+        public Produto Produto { get; set; }
+
+        [Required(ErrorMessage = "A quantidade do item é obrigatória.")]
+        public int Quantidade { get; set; }
+
+        [Required(ErrorMessage = "O valor do item é obrigatório.")]
+        public decimal Valor { get; set; }
+    }
+}
+
+namespace MinhaAplicacao.Repositories
+{
+    public class MeuContextoRepository : IDisposable
+    {
+        private readonly MeuContexto db = new MeuContexto();
+
+        public IQueryable<Produto> GetProdutos()
+        {
+            return db.Produtos;
+        }
+
+        public void AddProduto(Produto produto)
+        {
+            db.Produtos.Add(produto);
+            db.SaveChanges();
+        }
+
+        public void Dispose()
+        {
+            db.Dispose();
+        }
+    }
+
+    internal class MeuContexto
+    {
+        public IQueryable<Produto> Produtos { get; internal set; }
+
+        internal void Dispose()
+        {
+            throw new NotImplementedException();
+        }
+
+        internal void SaveChanges()
+        {
+            throw new NotImplementedException();
+        }
+    }
+}
 
 namespace MinhaAplicacao.Controllers
 {
     public class ProdutosController : Controller
     {
-        private readonly IProdutoRepository _produtoRepository;
+        private readonly MeuContextoRepository repository = new();
 
-        public ProdutosController(IProdutoRepository produtoRepository)
+        public IActionResult Index()
         {
-            _produtoRepository = produtoRepository;
+            var produtos = repository.GetProdutos().ToList();
+            return View(produtos);
         }
 
-        public async Task<IActionResult> Index(int page = 1, int pageSize = 10)
-        {
-            try
-            {
-                var produtos = await _produtoRepository.GetProdutosAsync(page, pageSize);
-                var produtosDTOs = produtos.Select(p => new ProdutoDTO
-                {
-                    ID = p.ID,
-                    Descricao = p.Descricao,
-                    Unidade = p.Unidade
-                }).ToList();
-
-                return View(produtosDTOs);
-            }
-            catch (Exception ex)
-            {
-                // Log the error here
-                return View("Error", new ErrorViewModel { Message = ex.Message });
-            }
-        }
-
-        public IActionResult Create()
-        {
-            return View();
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(ProdutoDTO produtoDTO)
-        {
-            if (!ModelState.IsValid)
-            {
-                return View(produtoDTO);
-            }
-
-            try
-            {
-                var produto = new Produto
-                {
-                    Descricao = produtoDTO.Descricao,
-                    Unidade = produtoDTO.Unidade
-                };
-
-                await _produtoRepository.AddProdutoAsync(produto);
-
-                return RedirectToAction(nameof(Index));
-            }
-            catch (Exception ex)
-            {
-                // Log the error here
-                return View("Error", new ErrorViewModel { Message = ex.Message });
-            }
-        }
-    }
-
-    public class ErrorViewModel
-    {
-        public string Message { get; set; }
-    }
-
-    public class ProdutoDTO
-    {
-        public int ID { get; set; }
-        public string Descricao { get; set; }
-        public string Unidade { get; set; }
-    }
-
-    public interface IProdutoRepository
-    {
-        Task<List<Produto>> GetProdutosAsync(int page, int pageSize);
-        Task AddProdutoAsync(Produto produto);
-    }
-
-    public class ProdutoRepository : IProdutoRepository
-    {
-        private readonly DesenvolvimentoContext _context;
-
-        public ProdutoRepository(DesenvolvimentoContext context)
-        {
-            _context = context;
-        }
-
-        public async Task<List<Produto>> GetProdutosAsync(int page, int pageSize)
-        {
-            return await _context.Produtos.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
-        }
-
-        public async Task AddProdutoAsync(Produto produto)
-        {
-            _context.Produtos.Add(produto);
-            await _context.SaveChangesAsync();
-        }
-    }
-
-    public class DesenvolvimentoContext : DbContext
-    {
-        public DbSet<Produto> Produtos { get; set; }
-
-        public DesenvolvimentoContext(DbContextOptions<DesenvolvimentoContext> options) : base(options)
-        {
-        }
-
-        internal Task SaveChangesAsync()
-        {
-            throw new NotImplementedException();
-        }
-    }
-
-    public class Produto
-    {
-        public int ID { get; set; }
-        public string Descricao { get; set; }
-        public string Unidade { get; set; }
+        [HttpGet]
+        public
     }
 }
